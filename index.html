@@ -3784,7 +3784,7 @@ async function fetchPrivateAnalytics() {
     const qs = `ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=estimatedMinutesWatched,views,averageViewDuration`;
     
     const r = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${qs}`, {
-      headers: { 'Authorization': \`Bearer \${oauthToken}\` }
+      headers: { 'Authorization': `Bearer ${oauthToken}` }
     });
     
     const d = await r.json();
@@ -3800,7 +3800,7 @@ async function fetchPrivateAnalytics() {
       
       const m = Math.floor(avgDurationSecs/60);
       const s = Math.floor(avgDurationSecs%60);
-      $('priv-ctr').textContent = \`\${m}:\${s < 10 ? '0' : ''}\${s}\`;
+      $('priv-ctr').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
       $('priv-ctr').previousSibling.textContent = 'Avg View Duration'; // Hack update label
     }
   } catch(e) {
