@@ -1,0 +1,20 @@
+{
+  "name": "YT Dashboard Ultimate",
+  "short_name": "YT Dash",
+  "description": "YouTube Creator Intelligence & Strategy Workstation",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#060608",
+  "theme_color": "#ff0033",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "en"
+}
