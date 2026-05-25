@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yt-dash-ultimate-v1';
+const CACHE_NAME = 'yt-dash-ultimate-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
