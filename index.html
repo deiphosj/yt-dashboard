@@ -15,6 +15,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -740,6 +741,10 @@ body{
       <label class="field-label">Gemini API Key</label>
       <input type="password" id="gemini-key" placeholder="AIzaSy...">
     </div>
+    <div class="field">
+      <label class="field-label">Google OAuth Client ID (Optional, for Private Analytics)</label>
+      <input type="password" id="oauth-client-id" placeholder="xxxx-xxxx.apps.googleusercontent.com">
+    </div>
     <div id="setup-err" class="err" style="display:none"></div>
     <button class="btn-p" onclick="connect()">Connect & Launch →</button>
     <button class="btn-ghost" id="cancel-setup" style="display:none" onclick="cancelSetup()">Cancel</button>
@@ -832,6 +837,29 @@ body{
     <div id="threat-banner">
       <div><strong id="threat-title"></strong><br><span id="threat-sub"></span></div>
       <button class="icon-btn" style="background:rgba(0,0,0,0.2);color:#fff;border:none;" onclick="this.parentElement.style.display='none'">Dismiss</button>
+    </div>
+
+    </div>
+
+    <!-- Private Metrics & Format Strategy -->
+    <div class="card" id="private-metrics-card" style="border-color:#a855f7;">
+      <div class="card-title" style="color:#a855f7;">Format Strategy & Private Analytics</div>
+      <div class="stats-grid" id="format-stats-grid">
+        <div class="stat-box"><div class="stat-icon">⏱️</div><div class="stat-val" id="ratio-shorts">0%</div><div class="stat-label">Shorts Ratio</div></div>
+        <div class="stat-box"><div class="stat-icon">🔥</div><div class="stat-val" id="ratio-long">0%</div><div class="stat-label">Long-form Ratio</div></div>
+        <div class="stat-box"><div class="stat-icon">📈</div><div class="stat-val" id="avg-shorts-views">-</div><div class="stat-label">Avg Shorts Views</div></div>
+        <div class="stat-box"><div class="stat-icon">📺</div><div class="stat-val" id="avg-long-views">-</div><div class="stat-label">Avg Long Views</div></div>
+      </div>
+      
+      <div id="auth-box" style="margin-top:16px;background:rgba(168,85,247,0.1);padding:14px;border-radius:12px;border:1px solid rgba(168,85,247,0.3);">
+        <p style="font-size:12px;color:var(--t2);margin-bottom:10px;">Connect your Google account to unlock private watch time and daily view velocity metrics.</p>
+        <button class="sbtn" onclick="authorizeGoogle()" style="background:#a855f7;">Connect Google OAuth</button>
+      </div>
+      
+      <div id="private-stats-grid" class="stats-grid" style="margin-top:16px;display:none;">
+        <div class="stat-box"><div class="stat-icon">🕒</div><div class="stat-val" id="priv-watchtime">-</div><div class="stat-label">30-Day Watch Hrs</div></div>
+        <div class="stat-box"><div class="stat-icon">🖱️</div><div class="stat-val" id="priv-ctr">-</div><div class="stat-label">30-Day CTR</div></div>
+      </div>
     </div>
 
     <div id="ch-skel" class="skeleton" style="height:200px;margin-bottom:18px;display:none"></div>
@@ -1049,6 +1077,24 @@ body{
       <div id="sat-err" class="err" style="display:none"></div>
       <div id="sat-skel" class="skeleton" style="height:200px;display:none;"></div>
       <div id="sat-res" style="display:none;"></div>
+    </div>
+
+    <!-- Reddit Audience Research -->
+    <div class="card" style="border-color:#ff4500;">
+      <div class="card-title" style="color:#ff4500;">Reddit Audience Research (Cross-Platform)</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:18px;line-height:1.6;">
+        Scrapes top Reddit discussions on a topic to extract audience pain points, common questions, and overall sentiment.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <input type="text" id="reddit-q" class="comp-input" placeholder="e.g., 'editing software' or 'faceless channels'..." onkeydown="if(event.key==='Enter')runRedditScraper()">
+        <button class="sbtn" onclick="runRedditScraper()" id="reddit-btn" style="background:#ff4500;flex-shrink:0;">Scrape Reddit</button>
+      </div>
+      <div id="reddit-err" class="err" style="display:none"></div>
+      <div id="reddit-skel" class="skeleton" style="height:150px;display:none;"></div>
+      <div id="reddit-results" style="display:none;">
+        <div class="card-title">Audience Pain Points & Questions</div>
+        <div id="reddit-pain" style="background:var(--s2);border:1px solid var(--b2);border-left:3px solid #ff4500;padding:16px;border-radius:12px;font-size:13px;line-height:1.6;color:var(--t1);"></div>
+      </div>
     </div>
   </div>
 
@@ -1813,13 +1859,13 @@ function switchTab(name, mtab) {
 }
 
 async function connect() {
-  const key=$('api-key').value.trim(), handle=$('ch-input').value.trim(), gKey=$('gemini-key').value.trim();
+  const key=$('api-key').value.trim(), handle=$('ch-input').value.trim(), gKey=$('gemini-key').value.trim(), oauthClientId=$('oauth-client-id').value.trim();
   if(!key||!handle) return showErr('setup-err','YouTube API Key and Handle required.');
-  S.cfg = { apiKey: key, handle, geminiKey: gKey, history: S.cfg?.history || [], compCache: S.cfg?.compCache || {} }; saveCfg();
+  S.cfg = { apiKey: key, handle, geminiKey: gKey, oauthClientId, history: S.cfg?.history || [], compCache: S.cfg?.compCache || {} }; saveCfg();
   $('setup').style.display='none'; $('dashboard').style.display='block'; loadChannelList(); await fetchChannel();
 }
 
-function openSettings() { $('api-key').value=S.cfg?.apiKey||''; $('ch-input').value=S.cfg?.handle||''; $('gemini-key').value=S.cfg?.geminiKey||''; $('cancel-setup').style.display='block'; $('setup').style.display='flex'; $('dashboard').style.display='none'; }
+function openSettings() { $('api-key').value=S.cfg?.apiKey||''; $('ch-input').value=S.cfg?.handle||''; $('gemini-key').value=S.cfg?.geminiKey||''; $('oauth-client-id').value=S.cfg?.oauthClientId||''; $('cancel-setup').style.display='block'; $('setup').style.display='flex'; $('dashboard').style.display='none'; }
 function cancelSetup() { $('setup').style.display='none'; $('dashboard').style.display='block'; }
 
 async function executeSwitch(btn) {
@@ -1994,6 +2040,12 @@ function renderGrowthChart() {
   });
 }
 
+function parseISO8601Duration(duration) {
+  const match = (duration||'').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if(!match) return 0;
+  return (parseInt(match[1])||0)*3600 + (parseInt(match[2])||0)*60 + (parseInt(match[3])||0);
+}
+
 async function loadVideos() {
   $('vid-skel').style.display='block'; $('vid-table-wrap').innerHTML='';
   try {
@@ -2001,9 +2053,26 @@ async function loadVideos() {
     const search = await yt('search',{part:'snippet',channelId:chId,type:'video',order,maxResults:50});
     const ids = (search.items||[]).map(i=>i.id?.videoId).filter(Boolean);
     if(!ids.length) return $('vid-table-wrap').innerHTML='<div class="empty">No videos</div>';
-    const d = await yt('videos',{part:'snippet,statistics',id:ids.join(','),maxResults:50});
+    const d = await yt('videos',{part:'snippet,statistics,contentDetails',id:ids.join(','),maxResults:50});
     const vids = d.items||[], now = Date.now();
-    vids.forEach(v=>{ const pub=new Date(v.snippet.publishedAt).getTime(), hrs=Math.max(1,(now-pub)/3600000), views=parseInt(v.statistics.viewCount)||0; v.vph = Math.round(views/hrs); });
+    
+    let sc=0, lc=0, sv=0, lv=0;
+    
+    vids.forEach(v=>{ 
+      const pub=new Date(v.snippet.publishedAt).getTime(), hrs=Math.max(1,(now-pub)/3600000), views=parseInt(v.statistics.viewCount)||0; 
+      v.vph = Math.round(views/hrs); 
+      v.durationSecs = parseISO8601Duration(v.contentDetails?.duration);
+      v.isShort = v.durationSecs <= 61 && v.durationSecs > 0;
+      if(v.isShort) { sc++; sv+=views; } else { lc++; lv+=views; }
+    });
+    
+    if(vids.length > 0) {
+      $('ratio-shorts').textContent = Math.round((sc/vids.length)*100)+'%';
+      $('ratio-long').textContent = Math.round((lc/vids.length)*100)+'%';
+      $('avg-shorts-views').textContent = sc>0 ? fmt(Math.round(sv/sc)) : '-';
+      $('avg-long-views').textContent = lc>0 ? fmt(Math.round(lv/lc)) : '-';
+    }
+
     if(S.vidView==='top') S.topVids=vids; else S.recentVids=vids;
     S.sortCol=null; renderVidTable(vids); populateVidSelect();
   } catch(e) { showErr('vid-err',e.message) }
@@ -3676,6 +3745,120 @@ async function probeKeysHealth() {
       setApiHealth('gemini', 'error');
     }
   }
+}
+
+// --- PRIVATE ANALYTICS (OAUTH2) ---
+let oauthToken = null;
+let tokenClient = null;
+
+function authorizeGoogle() {
+  if (!S.cfg.oauthClientId) {
+    return alert('Please enter your Google OAuth Client ID in the Settings panel first.');
+  }
+  
+  if(!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: S.cfg.oauthClientId,
+      scope: 'https://www.googleapis.com/auth/yt-analytics.readonly',
+      callback: (tokenResponse) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          oauthToken = tokenResponse.access_token;
+          $('auth-box').style.display = 'none';
+          $('private-stats-grid').style.display = 'grid';
+          fetchPrivateAnalytics();
+        }
+      },
+    });
+  }
+  tokenClient.requestAccessToken();
+}
+
+async function fetchPrivateAnalytics() {
+  if (!oauthToken) return;
+  try {
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const endDate = today.toISOString().split('T')[0];
+    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    const qs = `ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=estimatedMinutesWatched,views,averageViewDuration`;
+    
+    const r = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${qs}`, {
+      headers: { 'Authorization': \`Bearer \${oauthToken}\` }
+    });
+    
+    const d = await r.json();
+    if(d.error) throw new Error(d.error.message);
+    
+    if(d.rows && d.rows.length > 0) {
+      const row = d.rows[0];
+      const watchMins = row[0] || 0;
+      // Note: CTR isn't directly available without video dimensions in some contexts, using avg view duration instead
+      const avgDurationSecs = row[2] || 0; 
+      
+      $('priv-watchtime').textContent = fmt(Math.round(watchMins / 60));
+      
+      const m = Math.floor(avgDurationSecs/60);
+      const s = Math.floor(avgDurationSecs%60);
+      $('priv-ctr').textContent = \`\${m}:\${s < 10 ? '0' : ''}\${s}\`;
+      $('priv-ctr').previousSibling.textContent = 'Avg View Duration'; // Hack update label
+    }
+  } catch(e) {
+    console.warn("Analytics fetch failed:", e);
+    $('priv-watchtime').textContent = 'Err';
+    $('priv-ctr').textContent = 'Err';
+  }
+}
+
+async function runRedditScraper() {
+  const q = $('reddit-q').value.trim();
+  if(!q) return showErr('reddit-err', 'Enter a topic to scrape.');
+  if(!S.cfg.geminiKey) return showErr('reddit-err', 'Gemini API key is required to analyze Reddit data.');
+  
+  $('reddit-err').style.display = 'none';
+  $('reddit-results').style.display = 'none';
+  $('reddit-skel').style.display = 'block';
+  
+  const btn = $('reddit-btn');
+  btn.disabled = true; btn.textContent = 'Scraping...';
+  
+  try {
+    const r = await fetch(`https://www.reddit.com/search.json?q=${encodeURIComponent(q)}&sort=relevance&limit=15`);
+    const d = await r.json();
+    
+    if(!d.data || !d.data.children || !d.data.children.length) {
+      throw new Error('No Reddit discussions found for this topic.');
+    }
+    
+    const posts = d.data.children.map(c => `Title: ${c.data.title}\nText: ${c.data.selftext.slice(0, 300)}...`).join('\n\n');
+    
+    btn.textContent = 'Analyzing...';
+    
+    const sys = `You are an Audience Research Specialist. Analyze the following Reddit posts about "${q}". Extract: 1. The top 3 Audience Pain Points/Frustrations. 2. The top 3 Common Questions asked. 3. Overall Sentiment (e.g. Frustrated, Curious). Return STRICTLY JSON EXACTLY like this: { "painPoints": ["..."], "questions": ["..."], "sentiment": "..." }`;
+    
+    const parsed = await askLLM(sys, posts, true);
+    
+    $('reddit-pain').innerHTML = `
+      <div style="margin-bottom:12px;"><strong>Sentiment:</strong> ${parsed.sentiment || 'Unknown'}</div>
+      <div style="margin-bottom:6px;"><strong>Pain Points:</strong></div>
+      <ul style="margin-left:20px;margin-bottom:12px;">${(parsed.painPoints || []).map(p => `<li>${p}</li>`).join('')}</ul>
+      <div style="margin-bottom:6px;"><strong>Common Questions:</strong></div>
+      <ul style="margin-left:20px;">${(parsed.questions || []).map(q => `<li>${q}</li>`).join('')}</ul>
+    `;
+    
+    $('reddit-skel').style.display = 'none';
+    $('reddit-results').style.display = 'block';
+    
+    if(!S.sessionLog.reddit) S.sessionLog.reddit = {};
+    S.sessionLog.reddit[q] = parsed;
+    triggerAutoSave();
+    
+  } catch(e) {
+    showErr('reddit-err', e.message);
+    $('reddit-skel').style.display = 'none';
+  }
+  
+  btn.disabled = false; btn.textContent = 'Scrape Reddit';
 }
 </script>
 
