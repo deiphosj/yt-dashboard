@@ -15,6 +15,7 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -714,6 +715,90 @@ body{
   margin: 0 3px;
   transition: all 0.25s ease;
 }
+/* --- WORKSPACE MANAGER --- */
+.workspace-bar {
+  display:flex;align-items:center;gap:8px;margin-right:12px;
+  padding:4px 10px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);
+  border-radius:10px;
+}
+.ws-dropdown {
+  background:rgba(0,0,0,0.5);border:1px solid var(--b1);border-radius:8px;
+  color:var(--t1);font-family:var(--sans);font-size:11px;padding:5px 10px;height:30px;
+  outline:none;cursor:pointer;min-width:100px;max-width:180px;
+}
+.ws-dropdown:focus { border-color:#a855f7; box-shadow:0 0 8px rgba(168,85,247,0.2); }
+.ws-btn {
+  background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.3);color:#a855f7;
+  padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;font-weight:700;
+  font-family:var(--sans);white-space:nowrap;transition:all .2s ease;
+}
+.ws-btn:hover { background:rgba(168,85,247,0.3);transform:scale(1.04); }
+.ws-label { font-size:9px;font-weight:700;letter-spacing:1.5px;color:#a855f7;text-transform:uppercase; }
+
+/* Workspace Modal */
+.ws-modal-overlay {
+  position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);
+  z-index:9999;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.ws-modal-overlay.active { display:flex; }
+.ws-modal {
+  background:rgba(22,22,28,0.92);border:1px solid rgba(168,85,247,0.25);border-radius:20px;
+  padding:32px;width:90%;max-width:440px;backdrop-filter:blur(20px);
+  box-shadow:0 12px 40px rgba(0,0,0,0.6);
+}
+.ws-modal h3 { font-size:16px;font-weight:800;color:#a855f7;margin-bottom:20px;letter-spacing:-0.5px; }
+.ws-list-item {
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 12px;background:rgba(0,0,0,0.3);border:1px solid var(--b1);border-radius:10px;
+  margin-bottom:8px;transition:all .2s ease;
+}
+.ws-list-item:hover { border-color:rgba(168,85,247,0.3); }
+.ws-list-item .ws-name { flex:1;font-size:13px;color:var(--t1); }
+.ws-list-item .ws-actions { display:flex;gap:4px; }
+.ws-list-item .ws-actions button {
+  background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 6px;font-size:14px;
+  border-radius:4px;transition:all .15s ease;
+}
+.ws-list-item .ws-actions button:hover { color:var(--t1);background:rgba(255,255,255,0.1); }
+.ws-list-item .ws-actions .ws-del:hover { color:#ff4466;background:rgba(255,0,51,0.1); }
+.ws-list-item.active-ws { border-color:rgba(168,85,247,0.4);background:rgba(168,85,247,0.08); }
+
+/* --- COMPETITOR TREND CHARTS --- */
+.trend-toggle-bar {
+  display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;
+}
+.trend-toggle-btn {
+  background:rgba(0,0,0,0.4);border:1px solid var(--b1);border-radius:8px;
+  color:var(--t3);font-family:var(--sans);font-size:11px;font-weight:700;
+  padding:6px 14px;cursor:pointer;transition:all .2s ease;text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.trend-toggle-btn:hover { color:var(--t1);border-color:var(--b2); }
+.trend-toggle-btn.active { background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.4);color:#22c55e; }
+.trend-chart-wrapper { width:100%;height:280px;position:relative;margin-top:12px; }
+
+/* --- DEEP ANALYTICS CHARTS --- */
+.analytics-charts-grid {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:18px;
+}
+.analytics-chart-card {
+  background:rgba(0,0,0,0.3);border:1px solid rgba(168,85,247,0.15);border-radius:14px;
+  padding:16px;position:relative;
+}
+.analytics-chart-card h4 {
+  font-size:11px;font-weight:700;letter-spacing:1.5px;color:#a855f7;
+  text-transform:uppercase;margin-bottom:12px;
+}
+.analytics-chart-wrap { width:100%;height:200px;position:relative; }
+
+/* --- PDF EXPORT --- */
+.pdf-btn {
+  background:linear-gradient(135deg,#a855f7 0%,#6366f1 100%) !important;
+  color:#fff !important;border:none !important;font-weight:700 !important;
+  box-shadow:0 2px 12px rgba(168,85,247,0.3);
+}
+.pdf-btn:hover { box-shadow:0 4px 20px rgba(168,85,247,0.5);transform:translateY(-1px); }
 </style>
 </head>
 <body>
@@ -771,6 +856,13 @@ body{
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <!-- Workspace Selector -->
+      <div class="workspace-bar">
+        <span class="ws-label">WS</span>
+        <select id="ws-selector" class="ws-dropdown" onchange="switchWorkspace(this.value)" title="Switch Workspace"></select>
+        <button class="ws-btn" onclick="promptNewWorkspace()" title="New Workspace">+ New</button>
+        <button class="ws-btn" onclick="openWorkspaceManager()" title="Manage Workspaces">⚙</button>
+      </div>
       <select id="gemini-model-select" class="comp-input" style="padding:5px 10px;font-size:11px;font-family:var(--sans);height:32px;background:rgba(0,0,0,0.4);border:1px solid var(--b1);border-radius:8px;color:var(--t1);width:135px;" onchange="updateSelectedModel()" title="Select Gemini Model for deep deconstruction & scripts">
         <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
         <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
@@ -779,6 +871,7 @@ body{
       <button class="icon-btn" onclick="triggerWorkspaceImport()" title="Import research state from JSON file">↑ Import State</button>
       <input type="file" id="workspace-import-file" style="display:none" onchange="importWorkspaceJSON(event)" accept=".json">
       <button class="icon-btn" onclick="exportCSV()">↓ CSV</button>
+      <button class="icon-btn pdf-btn" onclick="generatePDFReport()" title="Download branded PDF report">📥 PDF Report</button>
       <button class="icon-btn" onclick="generateFullSessionReport()" style="color:#22c55e;border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.08);font-weight:700">📋 Full Session Report</button>
       <button class="icon-btn" onclick="generateStrategyReport()" style="color:var(--t2)">📄 Quick Report</button>
       <button class="icon-btn" onclick="openSettings()">⚙ Settings</button>
@@ -858,6 +951,21 @@ body{
       <div id="private-stats-grid" class="stats-grid" style="margin-top:16px;display:none;">
         <div class="stat-box"><div class="stat-icon">🕒</div><div class="stat-val" id="priv-watchtime">-</div><div class="stat-label">30-Day Watch Hrs</div></div>
         <div class="stat-box"><div class="stat-icon">🖱️</div><div class="stat-val" id="priv-ctr">-</div><div class="stat-label">30-Day CTR</div></div>
+      </div>
+      
+      <div id="deep-analytics-grid" class="analytics-charts-grid" style="display:none;">
+        <div class="analytics-chart-card">
+          <h4>🚦 Traffic Sources</h4>
+          <div class="analytics-chart-wrap"><canvas id="trafficSourceChart"></canvas></div>
+        </div>
+        <div class="analytics-chart-card">
+          <h4>👥 Demographics</h4>
+          <div class="analytics-chart-wrap"><canvas id="demographicsChart"></canvas></div>
+        </div>
+        <div class="analytics-chart-card">
+          <h4>📱 Devices</h4>
+          <div class="analytics-chart-wrap"><canvas id="deviceChart"></canvas></div>
+        </div>
       </div>
     </div>
 
@@ -994,6 +1102,16 @@ body{
     <div id="comp-table-card" class="card" style="overflow-x:auto">
       <div class="card-title">Tracked Competitor Comparison Grid</div>
       <div id="ctable-wrap"><div class="empty">No competitors tracked yet. Add channels under the Competitors tab!</div></div>
+    </div>
+
+    <div class="card" id="comp-trends-card" style="display:none; border-color:#22c55e;">
+      <div class="card-title" style="color:#22c55e;">Competitor Trajectory Trends</div>
+      <div class="trend-toggle-bar">
+        <button class="trend-toggle-btn active" onclick="renderCompetitorTrendChart('subs')" id="btn-trend-subs">Subscribers</button>
+        <button class="trend-toggle-btn" onclick="renderCompetitorTrendChart('views')" id="btn-trend-views">Views</button>
+        <button class="trend-toggle-btn" onclick="renderCompetitorTrendChart('videos')" id="btn-trend-videos">Videos</button>
+      </div>
+      <div class="trend-chart-wrapper"><canvas id="compTrendChart"></canvas></div>
     </div>
 
     <div class="card" style="border-color: var(--r);">
@@ -1503,6 +1621,25 @@ body{
   </div>
 </div>
 
+<!-- Workspace Management Modal -->
+<div class="ws-modal-overlay" id="ws-modal">
+  <div class="ws-modal">
+    <h3>⚙️ Workspace Manager</h3>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:16px;">Create isolated workspaces to track different channels or clients separately. Each workspace has its own API keys, tracking history, and competitor lists.</p>
+    
+    <div style="margin-bottom:20px; display:flex; gap:8px;">
+      <input type="text" id="ws-new-name" class="comp-input" placeholder="New workspace name..." style="flex:1;">
+      <button class="sbtn" onclick="createNewWorkspace()" style="background:var(--r);">Create</button>
+    </div>
+    
+    <div id="ws-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;">
+      <!-- Populated via JS -->
+    </div>
+    
+    <button class="sbtn" style="width:100%; background:var(--b2); color:var(--t1);" onclick="closeWorkspaceManager()">Done</button>
+  </div>
+</div>
+
 <!-- Autosave Sync Toast Notification -->
 <div id="sync-toast">
   <svg class="sync-icon" viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>
@@ -1518,6 +1655,7 @@ const LOCAL_CONFIG = {
 };
 // -----------------------------------
 const S = { 
+  activeWorkspaceId: 'default',
   cfg: null, 
   channel: null, 
   recentVids: [], 
@@ -1536,6 +1674,10 @@ const S = {
   latestIntel: null, 
   loadedCommentsText: [],
   quotaUsed: 0,
+  trafficChart: null,
+  demoChart: null,
+  deviceChart: null,
+  compTrendChartInst: null,
   sessionLog: { 
     audit: null, sponsorship: null, gaps: {}, recon: null, trends: null, market: null, v2: null, 
     concept: null, outlier: null, tags: null, saturation: null, tropes: null, interceptor: null, 
@@ -1552,15 +1694,24 @@ function parseVidId(url) { if(!url) return ''; const m = url.match(/(?:v=|youtu\
 function earnRange(views) { const v=parseInt(views)||0;return '$'+fmtM(v/1000*1.5)+' – $'+fmtM(v/1000*6) }
 function showErr(id,msg) { const el=$(id); if(el) { el.textContent='⚠ '+msg; el.style.display='block'; } }
 
+function getCfgKey() { return `yt-dash-cfg-${S.activeWorkspaceId}`; }
+function getStateKey() { return `yt-dash-state-${S.activeWorkspaceId}`; }
+
 function saveCfg() { 
   try {
-    localStorage.setItem('yt-dash-ult-final', JSON.stringify(S.cfg));
+    localStorage.setItem(getCfgKey(), JSON.stringify(S.cfg));
     saveWorkspaceState();
   } catch(e){} 
 }
 function loadCfg() { 
   try {
-    return JSON.parse(localStorage.getItem('yt-dash-ult-final'));
+    let cfg = JSON.parse(localStorage.getItem(getCfgKey()));
+    // Migration from old single-workspace setup
+    if(!cfg && S.activeWorkspaceId === 'default') {
+      cfg = JSON.parse(localStorage.getItem('yt-dash-ult-final'));
+      if(cfg) localStorage.setItem(getCfgKey(), JSON.stringify(cfg));
+    }
+    return cfg;
   } catch(e){return null} 
 }
 
@@ -1685,15 +1836,97 @@ function saveWorkspaceState() {
       quotaUsed: S.quotaUsed,
       sessionLog: S.sessionLog
     };
-    localStorage.setItem('yt-dash-ult-workspace-cache', JSON.stringify(serializedState));
+    localStorage.setItem(getStateKey(), JSON.stringify(serializedState));
   } catch(e) {
     console.error('Failed to autosave workspace state:', e);
   }
 }
 
+// --- WORKSPACE MANAGER LOGIC ---
+function getWorkspacesList() {
+  try {
+    const list = JSON.parse(localStorage.getItem('yt-dash-workspaces')) || [{id:'default', name:'Default Workspace'}];
+    return list;
+  } catch(e) { return [{id:'default', name:'Default Workspace'}]; }
+}
+function saveWorkspacesList(list) {
+  localStorage.setItem('yt-dash-workspaces', JSON.stringify(list));
+}
+function initWorkspaces() {
+  const list = getWorkspacesList();
+  const lastActive = localStorage.getItem('yt-dash-active-ws') || 'default';
+  S.activeWorkspaceId = list.some(w=>w.id===lastActive) ? lastActive : 'default';
+  
+  const sel = $('ws-selector');
+  if(!sel) return;
+  sel.innerHTML = list.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  sel.value = S.activeWorkspaceId;
+}
+function switchWorkspace(id) {
+  if(id === S.activeWorkspaceId) return;
+  S.activeWorkspaceId = id;
+  localStorage.setItem('yt-dash-active-ws', id);
+  window.location.reload(); // Full refresh ensures complete state reset
+}
+function openWorkspaceManager() {
+  $('ws-modal').classList.add('active');
+  renderWorkspaceList();
+}
+function closeWorkspaceManager() {
+  $('ws-modal').classList.remove('active');
+  $('ws-new-name').value = '';
+}
+function renderWorkspaceList() {
+  const list = getWorkspacesList();
+  const container = $('ws-list');
+  container.innerHTML = list.map(w => `
+    <div class="ws-list-item ${w.id === S.activeWorkspaceId ? 'active-ws' : ''}">
+      <div class="ws-name">${w.name} ${w.id === S.activeWorkspaceId ? '(Active)' : ''}</div>
+      <div class="ws-actions">
+        ${w.id !== S.activeWorkspaceId ? `<button onclick="switchWorkspace('${w.id}')" title="Switch to this workspace">↗️</button>` : ''}
+        ${list.length > 1 && w.id !== S.activeWorkspaceId ? `<button class="ws-del" onclick="deleteWorkspace('${w.id}')" title="Delete workspace">🗑️</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+function createNewWorkspace() {
+  const nameInput = $('ws-new-name');
+  const name = nameInput.value.trim();
+  if(!name) return;
+  const list = getWorkspacesList();
+  const id = 'ws_' + Date.now() + Math.floor(Math.random()*1000);
+  list.push({id, name});
+  saveWorkspacesList(list);
+  nameInput.value = '';
+  renderWorkspaceList();
+  
+  // Create default empty config for it
+  localStorage.setItem(`yt-dash-cfg-${id}`, JSON.stringify({ history: [], compHistory: {}, compCache: {}, selectedModel: 'gemini-2.5-flash' }));
+  
+  if(confirm(`Workspace "${name}" created. Switch to it now?`)) {
+    switchWorkspace(id);
+  }
+}
+function deleteWorkspace(id) {
+  if(confirm('Are you sure you want to permanently delete this workspace and all its data? This cannot be undone.')) {
+    let list = getWorkspacesList();
+    list = list.filter(w => w.id !== id);
+    saveWorkspacesList(list);
+    localStorage.removeItem(`yt-dash-cfg-${id}`);
+    localStorage.removeItem(`yt-dash-state-${id}`);
+    renderWorkspaceList();
+  }
+}
+
 function loadWorkspaceState() {
   try {
-    const data = localStorage.getItem('yt-dash-ult-workspace-cache');
+    let data = localStorage.getItem(getStateKey());
+    // Migration from old single-workspace setup
+    if(!data && S.activeWorkspaceId === 'default') {
+      data = localStorage.getItem('yt-dash-ult-workspace-cache');
+      if(data) localStorage.setItem(getStateKey(), data);
+    }
+    
     if(!data) return false;
     const cache = JSON.parse(data);
     
@@ -1744,7 +1977,7 @@ function loadWorkspaceState() {
 
 function clearWorkspaceCache() {
   try {
-    localStorage.removeItem('yt-dash-ult-workspace-cache');
+    localStorage.removeItem(getStateKey());
     S.channel = null;
     S.recentVids = [];
     S.topVids = [];
@@ -1955,6 +2188,8 @@ async function fetchChannel() {
     if(S.cfg.history && !S.cfg.multiHistory['migrated']) {
       S.cfg.multiHistory['migrated'] = true;
     }
+    
+    snapshotCompetitorStats();
     
     saveCfg(); renderOverview(); checkThreats(); 
     loadVideos().then(() => { renderSchedule(); });
@@ -2177,7 +2412,89 @@ async function addComp(id) {
   $('comp-table-card').style.display='block';
   $('ctable-wrap').innerHTML=`<table class="ctable"><thead><tr><th>Channel</th><th>Subs</th><th>Views</th><th>Videos</th></tr></thead><tbody>${rows}</tbody></table>`;
   updateGapSelect();
+  snapshotCompetitorStats();
   triggerAutoSave();
+}
+
+// --- COMPETITOR TRENDS SYSTEM ---
+function snapshotCompetitorStats() {
+  if(!S.competitors || !S.competitors.length) return;
+  if(!S.cfg.compHistory) S.cfg.compHistory = {};
+  
+  const today = new Date().toISOString().slice(0,10);
+  
+  S.competitors.forEach(c => {
+    if(!S.cfg.compHistory[c.id]) S.cfg.compHistory[c.id] = [];
+    const hist = S.cfg.compHistory[c.id];
+    const last = hist[hist.length - 1];
+    const curViews = parseInt(c.statistics?.viewCount)||0;
+    const curSubs = parseInt(c.statistics?.subscriberCount)||0;
+    const curVids = parseInt(c.statistics?.videoCount)||0;
+    
+    if(!last || last.date !== today) {
+      hist.push({ date: today, views: curViews, subs: curSubs, videos: curVids });
+    } else {
+      last.views = curViews; last.subs = curSubs; last.videos = curVids;
+    }
+  });
+  
+  $('comp-trends-card').style.display = 'block';
+  renderCompetitorTrendChart('subs'); // Default to subs
+}
+
+function renderCompetitorTrendChart(metric) {
+  if(!S.cfg.compHistory) return;
+  
+  // Update toggle buttons
+  ['subs','views','videos'].forEach(m => {
+    const btn = $(`btn-trend-${m}`);
+    if(btn) btn.classList.toggle('active', m === metric);
+  });
+  
+  const colors = ['#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6'];
+  const datasets = [];
+  let allDates = new Set();
+  
+  S.competitors.forEach((c, idx) => {
+    const hist = S.cfg.compHistory[c.id] || [];
+    hist.forEach(h => allDates.add(h.date));
+  });
+  
+  const labels = Array.from(allDates).sort().map(d => d.slice(5)); // MM-DD
+  
+  S.competitors.forEach((c, idx) => {
+    const hist = S.cfg.compHistory[c.id] || [];
+    const dataMap = {};
+    hist.forEach(h => dataMap[h.date.slice(5)] = h[metric]);
+    
+    const data = labels.map(l => dataMap[l] || null);
+    
+    datasets.push({
+      label: c.snippet?.title || 'Unknown',
+      data: data,
+      borderColor: colors[idx % colors.length],
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      spanGaps: true
+    });
+  });
+  
+  const ctx = document.getElementById('compTrendChart').getContext('2d');
+  if(S.compTrendChartInst) S.compTrendChartInst.destroy();
+  
+  S.compTrendChartInst = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#e8e8e8' } } },
+      scales: {
+        x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
 }
 
 async function findSimilarToMine() {
@@ -3683,9 +4000,85 @@ ${sections}
   a.click();
 }
 
+function generatePDFReport() {
+  if(!S.channel) return alert('Connect a channel first.');
+  if(typeof html2pdf === 'undefined') return alert('PDF library is loading or failed to load. Please try again in a few seconds or check your connection.');
+  
+  // Re-use the HTML generation from full session report but render to PDF
+  const ch = S.channel;
+  const now = new Date();
+  
+  // Hack: temporarily override the generateFullSessionReport download logic 
+  // to grab its HTML string, or we just rebuild a lightweight version here.
+  // Building a clean DOM element for html2pdf is safer.
+  const container = document.createElement('div');
+  container.innerHTML = `
+    <div style="font-family: 'Syne', sans-serif; padding: 30px; color: #111;">
+      <h1 style="color: #ff0033; font-weight: 800; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+        YouTube Intelligence Report
+      </h1>
+      <h3 style="color: #555; margin-bottom: 30px;">Channel: ${ch.snippet.title} | Date: ${now.toLocaleDateString()}</h3>
+      
+      <div style="background: #f8f8f8; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+        <h2 style="margin-top:0;">Channel Overview</h2>
+        <p><strong>Subscribers:</strong> ${fmt(ch.statistics.subscriberCount)}</p>
+        <p><strong>Total Views:</strong> ${fmt(ch.statistics.viewCount)}</p>
+        <p><strong>Videos:</strong> ${fmt(ch.statistics.videoCount)}</p>
+      </div>
+      
+      ${S.competitors.length ? `
+      <div style="margin-bottom: 30px;">
+        <h2>Tracked Competitors</h2>
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <tr style="background: #eee;">
+            <th style="padding: 10px; border-bottom: 1px solid #ccc;">Channel</th>
+            <th style="padding: 10px; border-bottom: 1px solid #ccc;">Subs</th>
+            <th style="padding: 10px; border-bottom: 1px solid #ccc;">Views</th>
+          </tr>
+          ${S.competitors.map(c => `<tr><td style="padding: 10px; border-bottom: 1px solid #eee;">${c.snippet.title}</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${fmt(c.statistics.subscriberCount)}</td><td style="padding: 10px; border-bottom: 1px solid #eee;">${fmt(c.statistics.viewCount)}</td></tr>`).join('')}
+        </table>
+      </div>` : ''}
+      
+      ${S.sessionLog.gaps && Object.keys(S.sessionLog.gaps).length ? `
+      <div style="margin-bottom: 30px;">
+        <h2>Content Gaps Discovered</h2>
+        ${Object.entries(S.sessionLog.gaps).map(([name, g]) => `
+          <div style="margin-bottom: 15px; padding: 15px; border-left: 4px solid #22c55e; background: #fafafa;">
+            <h4 style="margin-top:0; color: #22c55e;">vs ${name}</h4>
+            <p style="font-size: 14px;"><strong>Missing Topics:</strong> ${(g.missingTopics||[]).join(', ')}</p>
+            <p style="font-size: 14px;"><strong>Retaliation Titles:</strong> ${(g.recommendedTitles||[]).join(' | ')}</p>
+          </div>
+        `).join('')}
+      </div>` : ''}
+      
+      ${S.sessionLog.market ? `
+      <div style="margin-bottom: 30px;">
+        <h2>Market Recon: ${S.sessionLog.market.query}</h2>
+        <p style="font-size: 14px;"><strong>Clusters:</strong> ${(S.sessionLog.market.clusters||[]).join(', ')}</p>
+        <p style="font-size: 14px;"><strong>Frameworks:</strong> ${(S.sessionLog.market.frameworks||[]).join(' | ')}</p>
+      </div>` : ''}
+      
+      <p style="margin-top: 40px; font-size: 11px; color: #888; text-align: center;">
+        Generated by YT Dashboard Ultimate - PDF Export
+      </p>
+    </div>
+  `;
+  
+  const opt = {
+    margin:       [10, 10, 10, 10],
+    filename:     `YT_Dash_Report_${ch.snippet.title.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  html2pdf().set(opt).from(container).save();
+}
+
 (function init(){ 
+  initWorkspaces();
   const saved = loadCfg(); 
-  S.cfg = saved || { history: [], compCache: {}, selectedModel: 'gemini-2.5-flash' };
+  S.cfg = saved || { history: [], compHistory: {}, compCache: {}, selectedModel: 'gemini-2.5-flash' };
 
   // Setup visual model selection from cfg
   const modelSelect = $('gemini-model-select');
@@ -3819,11 +4212,79 @@ async function fetchPrivateAnalytics() {
       $('priv-ctr').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
       $('priv-ctr').previousSibling.textContent = 'Avg View Duration'; // Hack update label
     }
+    
+    $('deep-analytics-grid').style.display = 'grid';
+    fetchTrafficSources(startDate, endDate);
+    fetchDemographics(startDate, endDate);
+    fetchDeviceTypes(startDate, endDate);
+    
   } catch(e) {
     console.warn("Analytics fetch failed:", e);
     $('priv-watchtime').textContent = 'Err';
     $('priv-ctr').textContent = 'Err';
   }
+}
+
+async function fetchTrafficSources(startDate, endDate) {
+  try {
+    const qs = `ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views&dimensions=insightTrafficSourceType&sort=-views`;
+    const r = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${qs}`, { headers: { 'Authorization': `Bearer ${oauthToken}` } });
+    const d = await r.json();
+    if(d.rows && d.rows.length) renderTrafficChart(d.rows);
+  } catch(e) { console.warn(e); }
+}
+
+async function fetchDemographics(startDate, endDate) {
+  try {
+    const qs = `ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=viewerPercentage&dimensions=ageGroup,gender`;
+    const r = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${qs}`, { headers: { 'Authorization': `Bearer ${oauthToken}` } });
+    const d = await r.json();
+    if(d.rows && d.rows.length) renderDemoChart(d.rows);
+  } catch(e) { console.warn(e); }
+}
+
+async function fetchDeviceTypes(startDate, endDate) {
+  try {
+    const qs = `ids=channel==MINE&startDate=${startDate}&endDate=${endDate}&metrics=views&dimensions=deviceType&sort=-views`;
+    const r = await fetch(`https://youtubeanalytics.googleapis.com/v2/reports?${qs}`, { headers: { 'Authorization': `Bearer ${oauthToken}` } });
+    const d = await r.json();
+    if(d.rows && d.rows.length) renderDeviceChart(d.rows);
+  } catch(e) { console.warn(e); }
+}
+
+function renderTrafficChart(rows) {
+  if(S.trafficChart) S.trafficChart.destroy();
+  const topRows = rows.slice(0,5);
+  const data = {
+    labels: topRows.map(r => r[0].replace('EXT_APP','External').replace('RELATED_VIDEO','Suggested').replace('YT_SEARCH','Search').replace('SHORTS','Shorts Feed')),
+    datasets: [{ data: topRows.map(r => r[1]), backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e', '#a855f7', '#ec4899'], borderWidth: 0 }]
+  };
+  S.trafficChart = new Chart($('trafficSourceChart').getContext('2d'), { type: 'doughnut', data, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#ccc', font: {size: 10} } } } } });
+}
+
+function renderDemoChart(rows) {
+  if(S.demoChart) S.demoChart.destroy();
+  const male = [], female = [], labels = ['13-17','18-24','25-34','35-44','45-54','55-64','65_'];
+  labels.forEach(age => {
+    const m = rows.find(r => r[0] === 'AGE_' + age && r[1] === 'MALE');
+    const f = rows.find(r => r[0] === 'AGE_' + age && r[1] === 'FEMALE');
+    male.push(m ? m[2] : 0); female.push(f ? f[2] : 0);
+  });
+  const data = { labels: ['13-17','18-24','25-34','35-44','45-54','55-64','65+'], datasets: [
+    { label: 'Male', data: male, backgroundColor: '#3b82f6' },
+    { label: 'Female', data: female, backgroundColor: '#ec4899' }
+  ]};
+  S.demoChart = new Chart($('demographicsChart').getContext('2d'), { type: 'bar', data, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, ticks:{color:'#888'} }, y: { stacked: true, ticks:{color:'#888', callback: v=>v+'%'} } }, plugins: { legend: { display: true, labels: {color:'#ccc'} } } } });
+}
+
+function renderDeviceChart(rows) {
+  if(S.deviceChart) S.deviceChart.destroy();
+  const topRows = rows.slice(0,4);
+  const data = {
+    labels: topRows.map(r => r[0].charAt(0) + r[0].slice(1).toLowerCase()),
+    datasets: [{ data: topRows.map(r => r[1]), backgroundColor: ['#14b8a6', '#f59e0b', '#3b82f6', '#8b5cf6'], borderWidth: 0 }]
+  };
+  S.deviceChart = new Chart($('deviceChart').getContext('2d'), { type: 'doughnut', data, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#ccc', font: {size: 10} } } } } });
 }
 
 async function runRedditScraper() {

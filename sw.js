@@ -1,11 +1,12 @@
-const CACHE_NAME = 'yt-dash-ultimate-v6';
+const CACHE_NAME = 'yt-dash-ultimate-v7';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './icon-512.png',
   './manifest.json',
   'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap',
-  'https://cdn.jsdelivr.net/npm/chart.js'
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
 // Install: cache core shell assets
