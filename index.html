@@ -1878,8 +1878,16 @@ async function executeSwitch(btn) {
   S.cfg.handle = newTarget;
   saveCfg();
   S.recentVids = []; S.topVids = []; S.loadedCommentsText = [];
+  S.competitors = []; S.addedIds = new Set();
+  
   $('vid-table-wrap').innerHTML = ''; $('comment-list').innerHTML = '';
   $('vid-select').innerHTML = '<option value="">— visit Videos tab first to load —</option>';
+  
+  $('ctable-wrap').innerHTML = '<div class="empty">No competitors tracked yet. Add channels under the Competitors tab!</div>';
+  for(let i=1;i<=5;i++) {
+    const s = $(`gap-select-${i}`);
+    if(s) s.innerHTML = '<option value="">- Add competitors in Competitors tab first -</option>';
+  }
   
   await fetchChannel();
   
