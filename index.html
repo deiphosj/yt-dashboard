@@ -1956,6 +1956,7 @@ function loadWorkspaceState() {
       $('comp-table-card').style.display = 'block';
       $('ctable-wrap').innerHTML = `<table class="ctable"><thead><tr><th>Channel</th><th>Subs</th><th>Views</th><th>Videos</th></tr></thead><tbody>${rows}</tbody></table>`;
       updateGapSelect();
+      snapshotCompetitorStats();
     }
     
     // Set visual estimated quota
