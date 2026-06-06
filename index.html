@@ -1832,12 +1832,14 @@ function importWorkspaceJSON(event) {
 
 
 function switchMainTab(mtab) {
-  document.querySelectorAll('.main-tab').forEach(t=>t.classList.toggle('active',t.dataset.mtab===mtab));
-  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===`panel-${mtab}`));
-  
-  if(mtab === 'mychannel' && S.channel && !S.recentVids.length) {
-    loadVideos().then(() => { renderSchedule(); });
-  }
+  try {
+    document.querySelectorAll('.main-tab').forEach(t=>t.classList.toggle('active',t.dataset.mtab===mtab));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===`panel-${mtab}`));
+    
+    if(mtab === 'mychannel' && S.channel && !S.recentVids.length) {
+      loadVideos().then(() => { renderSchedule(); });
+    }
+  } catch(e) { console.error('Tab switch error:', e); }
 }
 
 // Retain switchTab as a compatibility map to redirect programmatic clicks
@@ -3762,22 +3764,29 @@ function authorizeGoogle() {
   if (!S.cfg.oauthClientId) {
     return alert('Please enter your Google OAuth Client ID in the Settings panel first.');
   }
-  
-  if(!tokenClient) {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: S.cfg.oauthClientId,
-      scope: 'https://www.googleapis.com/auth/yt-analytics.readonly',
-      callback: (tokenResponse) => {
-        if (tokenResponse && tokenResponse.access_token) {
-          oauthToken = tokenResponse.access_token;
-          $('auth-box').style.display = 'none';
-          $('private-stats-grid').style.display = 'grid';
-          fetchPrivateAnalytics();
-        }
-      },
-    });
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    return alert('Google Sign-In library failed to load. Please check your internet connection, disable ad-blockers, and reload the page.');
   }
-  tokenClient.requestAccessToken();
+  try {
+    if(!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: S.cfg.oauthClientId,
+        scope: 'https://www.googleapis.com/auth/yt-analytics.readonly',
+        callback: (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            oauthToken = tokenResponse.access_token;
+            $('auth-box').style.display = 'none';
+            $('private-stats-grid').style.display = 'grid';
+            fetchPrivateAnalytics();
+          }
+        },
+      });
+    }
+    tokenClient.requestAccessToken();
+  } catch(e) {
+    console.error('OAuth error:', e);
+    alert('OAuth failed: ' + e.message);
+  }
 }
 
 async function fetchPrivateAnalytics() {
