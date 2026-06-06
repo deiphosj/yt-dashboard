@@ -1951,12 +1951,7 @@ function loadWorkspaceState() {
       renderSchedule();
     }
     if(S.competitors.length) {
-      const all = [S.channel, ...S.competitors].filter(Boolean);
-      const rows = all.map(c => `<tr><td><div class="ch-cell"><img class="ch-cell-av" src="${c.snippet?.thumbnails?.default?.url||''}"><a href="https://youtube.com/channel/${c.id}" target="_blank" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='var(--g)'" onmouseout="this.style.color='inherit'">${c.snippet?.title}${c.id===S.channel?.id?'<span class="you-badge">YOU</span>':''}</a></div></td><td>${fmt(c.statistics?.subscriberCount)}</td><td>${fmt(c.statistics?.viewCount)}</td><td>${fmt(c.statistics?.videoCount)}</td></tr>`).join('');
-      $('comp-table-card').style.display = 'block';
-      $('ctable-wrap').innerHTML = `<table class="ctable"><thead><tr><th>Channel</th><th>Subs</th><th>Views</th><th>Videos</th></tr></thead><tbody>${rows}</tbody></table>`;
-      updateGapSelect();
-      snapshotCompetitorStats();
+      renderCompTable();
     }
     
     // Set visual estimated quota
@@ -2408,10 +2403,51 @@ async function searchComp() {
 async function addComp(id) {
   if(S.addedIds.has(id))return; S.addedIds.add(id); const btn=$('ab-'+id); if(btn)btn.textContent='Added';
   const ch=S.compSearchRes.find(c=>c.id===id); if(!ch)return; S.competitors.push(ch);
-  const all=[S.channel,...S.competitors].filter(Boolean);
-  const rows=all.map(c=>`<tr><td><div class="ch-cell"><img class="ch-cell-av" src="${c.snippet?.thumbnails?.default?.url||''}"><a href="https://youtube.com/channel/${c.id}" target="_blank" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='var(--g)'" onmouseout="this.style.color='inherit'">${c.snippet?.title}${c.id===S.channel?.id?'<span class="you-badge">YOU</span>':''}</a></div></td><td>${fmt(c.statistics?.subscriberCount)}</td><td>${fmt(c.statistics?.viewCount)}</td><td>${fmt(c.statistics?.videoCount)}</td></tr>`).join('');
-  $('comp-table-card').style.display='block';
-  $('ctable-wrap').innerHTML=`<table class="ctable"><thead><tr><th>Channel</th><th>Subs</th><th>Views</th><th>Videos</th></tr></thead><tbody>${rows}</tbody></table>`;
+  await renderCompTable();
+}
+
+function removeComp(id) {
+  if(!confirm("Remove this competitor from tracking?")) return;
+  S.competitors = S.competitors.filter(c => c.id !== id);
+  S.addedIds.delete(id);
+  if(S.cfg.compHistory && S.cfg.compHistory[id]) delete S.cfg.compHistory[id];
+  renderCompTable();
+}
+
+async function renderCompTable() {
+  const all = [S.channel, ...S.competitors].filter(Boolean);
+  
+  // Try to fetch latest video for each competitor if not cached
+  for (const c of S.competitors) {
+    if (!c.latestVideoTitle && c.contentDetails?.relatedPlaylists?.uploads) {
+      try {
+        const res = await yt('playlistItems', {part:'snippet', playlistId: c.contentDetails.relatedPlaylists.uploads, maxResults:1});
+        if(res.items?.length) {
+          c.latestVideoTitle = res.items[0].snippet.title;
+        } else {
+          c.latestVideoTitle = "No uploads found";
+        }
+      } catch(e) { c.latestVideoTitle = "Error fetching"; }
+    }
+  }
+  
+  const rows = all.map(c => {
+    const isYou = c.id === S.channel?.id;
+    const removeBtn = isYou ? '' : `<button onclick="removeComp('${c.id}')" style="background:none;border:none;color:var(--r);cursor:pointer;font-size:16px;padding:0 8px;" title="Untrack">✖</button>`;
+    const latest = isYou ? 'Your Channel' : (c.latestVideoTitle || 'Loading...');
+    
+    return `<tr>
+      <td><div class="ch-cell"><img class="ch-cell-av" src="${c.snippet?.thumbnails?.default?.url||''}"><a href="https://youtube.com/channel/${c.id}" target="_blank" style="color:inherit;text-decoration:none;" onmouseover="this.style.color='var(--g)'" onmouseout="this.style.color='inherit'">${c.snippet?.title}${isYou?'<span class="you-badge">YOU</span>':''}</a></div></td>
+      <td>${fmt(c.statistics?.subscriberCount)}</td>
+      <td>${fmt(c.statistics?.viewCount)}</td>
+      <td>${fmt(c.statistics?.videoCount)}</td>
+      <td style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--t2);" title="${latest.replace(/"/g, '&quot;')}">${latest}</td>
+      <td>${removeBtn}</td>
+    </tr>`;
+  }).join('');
+  
+  $('comp-table-card').style.display = 'block';
+  $('ctable-wrap').innerHTML = `<table class="ctable"><thead><tr><th>Channel</th><th>Subs</th><th>Views</th><th>Videos</th><th>Latest Upload</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
   updateGapSelect();
   snapshotCompetitorStats();
   triggerAutoSave();
